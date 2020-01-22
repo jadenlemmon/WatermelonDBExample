@@ -1,0 +1,21 @@
+version: '2'
+services:
+  database:
+    image: mysql:5.7
+    environment:
+      MYSQL_USER: test
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - '33071:3306'
+    networks:
+      - watermelon
+
+volumes:
+  dbdata:
+
+networks:
+  watermelon:
+    driver: bridge

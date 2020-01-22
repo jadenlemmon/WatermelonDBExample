@@ -8,21 +8,48 @@ import {
   StyleSheet,
 } from 'react-native';
 import withObservables from '@nozbe/with-observables';
-import {Q} from '@nozbe/watermelondb';
+import {synchronize} from '@nozbe/watermelondb/sync';
 import {NavigationActions} from 'react-navigation';
 import {database} from '../database';
 
+const syncData = async () => {
+  await synchronize({
+    database,
+    pullChanges: async ({lastPulledAt}) => {
+      const response = await fetch(
+        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
+      );
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const {changes, timestamp} = await response.json();
+      console.log(changes);
+      return {changes, timestamp};
+    },
+    pushChanges: async ({changes, lastPulledAt}) => {
+      const response = await fetch(
+        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(changes),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+    },
+  });
+};
+
 const styles = StyleSheet.create({
   item: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#ddd',
     padding: 10,
-    width: 300,
+    marginBottom: 10,
+    borderRadius: 10,
+    width: 350,
   },
-});
-
-const navigateAction = NavigationActions.navigate({
-  routeName: 'Presenter',
-  params: {},
 });
 
 const Presenter = ({presenter, onSelect}) => {
@@ -30,9 +57,10 @@ const Presenter = ({presenter, onSelect}) => {
     <TouchableOpacity
       onPress={() => onSelect(presenter.id)}
       style={[styles.item]}>
+      <Text style={{fontSize: 20}}>
+        {presenter.firstName} {presenter.lastName}
+      </Text>
       <Text>{presenter.role}</Text>
-      <Text>{presenter.firstName}</Text>
-      <Text>{presenter.lastName}</Text>
     </TouchableOpacity>
   );
 };
@@ -69,10 +97,15 @@ export class HomeScreen extends React.Component {
     //   });
     // });
     // console.log(allPosts);
+    await syncData();
   }
 
-  onSelect = () => {
-    this.props.navigation.dispatch(navigateAction);
+  onSelect = id => {
+    console.log(this.props.navigation);
+    this.props.navigation.navigate({
+      routeName: 'Presenter',
+      params: {id},
+    });
   };
 
   triggerUpdate = async () => {
@@ -88,10 +121,6 @@ export class HomeScreen extends React.Component {
   render() {
     return (
       <View style={{flex: 1, alignItems: 'center'}}>
-        <Text>Presenters</Text>
-        <TouchableHighlight onPress={this.triggerUpdate}>
-          <Text>Trigger Update</Text>
-        </TouchableHighlight>
         <PresenterList onSelect={this.onSelect} />
       </View>
     );

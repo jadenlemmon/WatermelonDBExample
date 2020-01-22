@@ -1,11 +1,11 @@
 import {synchronize} from '@nozbe/watermelondb/sync';
 
-async function mySync() {
+export const syncData = async () => {
   await synchronize({
     database,
     pullChanges: async ({lastPulledAt}) => {
       const response = await fetch(
-        `https://my.backend/sync?last_pulled_at=${lastPulledAt}`,
+        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
       );
       if (!response.ok) {
         throw new Error(await response.text());
@@ -16,7 +16,7 @@ async function mySync() {
     },
     pushChanges: async ({changes, lastPulledAt}) => {
       const response = await fetch(
-        `https://my.backend/sync?last_pulled_at=${lastPulledAt}`,
+        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
         {
           method: 'POST',
           body: JSON.stringify(changes),
@@ -27,4 +27,4 @@ async function mySync() {
       }
     },
   });
-}
+};
