@@ -1,46 +1,8 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableHighlight,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, FlatList, TouchableOpacity, StyleSheet} from 'react-native';
 import withObservables from '@nozbe/with-observables';
-import {synchronize} from '@nozbe/watermelondb/sync';
-import {NavigationActions} from 'react-navigation';
 import {database} from '../database';
-
-const syncData = async () => {
-  await synchronize({
-    database,
-    pullChanges: async ({lastPulledAt}) => {
-      const response = await fetch(
-        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
-      );
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const {changes, timestamp} = await response.json();
-      console.log(changes);
-      return {changes, timestamp};
-    },
-    pushChanges: async ({changes, lastPulledAt}) => {
-      const response = await fetch(
-        `http://127.0.0.1:7000/sync?last_pulled_at=${lastPulledAt}`,
-        {
-          method: 'POST',
-          body: JSON.stringify(changes),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-    },
-  });
-};
+import {syncData} from '../database/sync';
 
 const styles = StyleSheet.create({
   item: {
@@ -54,9 +16,7 @@ const styles = StyleSheet.create({
 
 const Presenter = ({presenter, onSelect}) => {
   return (
-    <TouchableOpacity
-      onPress={() => onSelect(presenter.id)}
-      style={[styles.item]}>
+    <TouchableOpacity onPress={() => onSelect(presenter)} style={[styles.item]}>
       <Text style={{fontSize: 20}}>
         {presenter.firstName} {presenter.lastName}
       </Text>
@@ -75,7 +35,6 @@ const PresenterList = withObservables(['presenters'], () => ({
   presenters: database.collections.get('presenters').query(),
 }))(({presenters, onSelect}) => (
   <View>
-    {console.log(presenters)}
     <FlatList
       data={presenters}
       renderItem={({item}) => (
@@ -88,23 +47,20 @@ const PresenterList = withObservables(['presenters'], () => ({
 
 export class HomeScreen extends React.Component {
   async componentDidMount() {
-    // await database.action(async () => {
-    //   const newPresenter = await presentersCollection.create(presenter => {
-    //     presenter.role = 'test role';
-    //     presenter.firstName = 'test firstname';
-    //     presenter.lastName = 'test lastname';
-    //     presenter.bio = 'test bio';
-    //   });
-    // });
-    // console.log(allPosts);
+    const start = new Date();
+
     await syncData();
+
+    const end = new Date();
+    const time = end.getTime() - start.getTime();
+
+    console.log('Sync finished in', time, 'ms');
   }
 
-  onSelect = id => {
-    console.log(this.props.navigation);
+  onSelect = presenter => {
     this.props.navigation.navigate({
       routeName: 'Presenter',
-      params: {id},
+      params: {presenter},
     });
   };
 
