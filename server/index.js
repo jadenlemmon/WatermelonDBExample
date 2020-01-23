@@ -15,12 +15,15 @@ app.use(bodyParser.json());
 
 app.get('/sync', async (req, res) => {
   let lastPulledAt = req.query.last_pulled_at;
+
   if (lastPulledAt === 'null') {
     lastPulledAt = false;
   } else {
     lastPulledAt = moment.unix(lastPulledAt);
   }
 
+  // if no last_pulled_at is provided, then they haven't pulled anything yet
+  // it's a first time sync so send all resources
   const presentersCreated = await Presenter.findAll({
     ...(!!lastPulledAt && {
       where: {
