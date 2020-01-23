@@ -1,6 +1,5 @@
 import React from 'react';
 import {StyleSheet, TouchableOpacity} from 'react-native';
-import withObservables from '@nozbe/with-observables';
 import {View, Text, TextInput} from 'react-native';
 import {database} from '../database';
 

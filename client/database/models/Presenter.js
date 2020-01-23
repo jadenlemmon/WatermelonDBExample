@@ -3,6 +3,9 @@ import {field} from '@nozbe/watermelondb/decorators';
 
 export class Presenter extends Model {
   static table = 'presenters';
+  static associations = {
+    event_presenter: {type: 'has_many', foreignKey: 'presenter_id'},
+  };
 
   @field('role') role;
   @field('first_name') firstName;

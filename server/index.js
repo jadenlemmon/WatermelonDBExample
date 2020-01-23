@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { Presenter } = require('./models');
+const { Presenter, Event, EventPresenter } = require('./models');
 const { Sequelize } = require('sequelize');
 const { sequelize } = require('./models');
 const moment = require('moment');
@@ -13,18 +13,10 @@ const port = 7000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.get('/sync', async (req, res) => {
-  let lastPulledAt = req.query.last_pulled_at;
-
-  if (lastPulledAt === 'null') {
-    lastPulledAt = false;
-  } else {
-    lastPulledAt = moment.unix(lastPulledAt);
-  }
-
+const syncModels = async (ModelToSync, lastPulledAt) => {
   // if no last_pulled_at is provided, then they haven't pulled anything yet
   // it's a first time sync so send all resources
-  const presentersCreated = await Presenter.findAll({
+  const modelsCreated = await ModelToSync.findAll({
     ...(!!lastPulledAt && {
       where: {
         createdAt: {
@@ -34,10 +26,12 @@ app.get('/sync', async (req, res) => {
     })
   });
 
-  const createdIds = presentersCreated.map(p => p.id);
+  // Ensure we don't send created records in updated records
+  // This confuses the client if we have duplicates
+  const createdIds = modelsCreated.map(p => p.id);
 
-  let presentersUpdated = lastPulledAt
-    ? await Presenter.findAll({
+  let modelsUpdated = lastPulledAt
+    ? await ModelToSync.findAll({
         where: {
           id: { [Op.notIn]: createdIds },
           updatedAt: {
@@ -47,8 +41,9 @@ app.get('/sync', async (req, res) => {
       })
     : [];
 
-  const presentersDeleted = lastPulledAt
-    ? await Presenter.findAll({
+  // Ensure we have a last_pulled_at to send deleted records
+  const modelsDeleted = lastPulledAt
+    ? await ModelToSync.findAll({
         where: {
           deletedAt: {
             [Op.gt]: lastPulledAt
@@ -57,14 +52,39 @@ app.get('/sync', async (req, res) => {
       })
     : [];
 
+  return [modelsCreated, modelsUpdated, modelsDeleted];
+};
+
+const ModelsToSync = [
+  {
+    model: Presenter,
+    key: 'presenters'
+  },
+  { model: Event, key: 'events' },
+  { model: EventPresenter, key: 'event_presenter' }
+];
+
+app.get('/sync', async (req, res) => {
+  let lastPulledAt = req.query.last_pulled_at;
+
+  // verify last_pulled_at and convert to a moment obj if valid
+  if (!lastPulledAt || lastPulledAt === 'null') {
+    lastPulledAt = false;
+  } else {
+    lastPulledAt = moment.unix(lastPulledAt);
+  }
+
+  let changes = {};
+
+  const wait = ModelsToSync.map(async ({ model, key }) => {
+    const [created, updated, deleted] = await syncModels(model, lastPulledAt);
+    changes[key] = { created, updated, deleted };
+  });
+
+  await Promise.all(wait);
+
   return res.json({
-    changes: {
-      presenters: {
-        created: presentersCreated,
-        updated: presentersUpdated,
-        deleted: presentersDeleted
-      }
-    },
+    changes,
     timestamp: moment().unix()
   });
 });

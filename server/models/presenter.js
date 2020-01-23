@@ -5,7 +5,6 @@ module.exports = (sequelize, DataTypes) => {
   const Presenter = sequelize.define(
     'Presenter',
     {
-      // id: DataTypes.UUID,
       first_name: DataTypes.STRING,
       last_name: DataTypes.STRING,
       role: DataTypes.STRING,
@@ -16,10 +15,13 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Presenter.beforeCreate(presenter => (presenter.id = uuid()));
-
   Presenter.associate = function(models) {
-    // associations can be defined here
+    Presenter.belongsToMany(models.Event, {
+      through: 'EventPresenter',
+      as: 'events',
+      foreignKey: 'presenter_id',
+      otherKey: 'event_id'
+    });
   };
   return Presenter;
 };
