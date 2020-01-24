@@ -8,6 +8,6 @@ export class EventPresenter extends Model {
     presenters: {type: 'belongs_to', key: 'presenter_id'},
   };
 
-  @field('event_id') eventId;
-  @field('presenter_id') presenterId;
+  @field('event_id') event_id;
+  @field('presenter_id') presenter_id;
 }

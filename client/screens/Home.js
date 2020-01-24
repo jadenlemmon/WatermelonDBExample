@@ -31,7 +31,7 @@ const enhance = withObservables(['presenter'], ({presenter}) => ({
 
 const EnhancedPresenter = enhance(Presenter);
 
-const PresenterList = withObservables(['presenters'], () => ({
+export const PresenterList = withObservables(['presenters'], () => ({
   presenters: database.collections.get('presenters').query(),
 }))(({presenters, onSelect}) => (
   <View>
