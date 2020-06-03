@@ -10,7 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@nozbe/watermelondb": "^0.15.0",
+    "@nozbe/watermelondb": "^0.15.1",
     "@nozbe/with-observables": "^1.0.5",
     "@react-native-community/masked-view": "^0.1.6",
     "react": "16.9.0",
